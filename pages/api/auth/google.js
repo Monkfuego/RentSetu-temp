@@ -3,7 +3,7 @@ import User from "../../../models/User";   // ✅ use your Mongoose model
 import { signAccess, signRefresh } from "../../../lib/jwt";
 import cookie from "cookie";
 import { v4 as uuidv4 } from "uuid";
-import dbConnect from "../../../lib/mongo"; // ✅ helper to connect to MongoDB
+import dbConnect from "../../../lib/mongodb"; // ✅ helper to connect to MongoDB
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const COOKIE_NAME = process.env.COOKIE_NAME || "jid";
