@@ -2,13 +2,33 @@ import bcrypt from "bcryptjs";
 import User from "../../../models/User";
 import { connectDB } from "../../../lib/mongodb";
 import nodemailer from "nodemailer";
+import Cors from "cors";
+
+// --- CORS setup ---
+const cors = Cors({
+  methods: ["POST", "OPTIONS"],
+  origin: "https://www.rentsetu.in/", // replace '*' with your frontend URL in production
+});
+
+function runMiddleware(req, res, fn) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result) => {
+      if (result instanceof Error) return reject(result);
+      return resolve(result);
+    });
+  });
+}
 
 export default async function handler(req, res) {
+  await runMiddleware(req, res, cors);
+
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
-  const { email, password, name } = req.body || {};
-  if (!email || !password || !name)
+  const { name, email, password } = req.body || {};
+  if (!name || !email || !password)
     return res.status(400).json({ error: "name, email and password required" });
 
   await connectDB();
@@ -27,9 +47,9 @@ export default async function handler(req, res) {
   // --- NodeMailer welcome email ---
   try {
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST, // e.g., smtp.gmail.com
+      host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
-      secure: false, // true if port 465
+      secure: false,
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
