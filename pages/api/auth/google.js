@@ -17,7 +17,7 @@ export default allowCors(async function handler(req, res) {
   if (!idToken) return res.status(400).json({ error: "idToken required" });
 
   try {
-    await dbConnect();
+    await connectDB();
 
     // Verify Google ID token
     const ticket = await client.verifyIdToken({
