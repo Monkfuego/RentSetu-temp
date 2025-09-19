@@ -3,10 +3,29 @@ import cookie from "cookie";
 import User from "../../../models/User";
 import { connectDB } from "../../../lib/mongodb";
 import { signAccess, signRefresh } from "../../../lib/jwt";
+import Cors from "cors";
 
 const COOKIE_NAME = process.env.COOKIE_NAME || "jid";
 
+// --- CORS setup ---
+const cors = Cors({
+  methods: ["POST", "OPTIONS"],
+  origin: "https://www.rentsetu.in/", // replace '*' with your frontend URL in production
+});
+
+function runMiddleware(req, res, fn) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result) => {
+      if (result instanceof Error) return reject(result);
+      return resolve(result);
+    });
+  });
+}
+
 export default async function handler(req, res) {
+  await runMiddleware(req, res, cors);
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
@@ -34,5 +53,8 @@ export default async function handler(req, res) {
     })
   );
 
-  return res.status(200).json({ access, user: { id: user._id, email: user.email } });
+  return res.status(200).json({
+    access,
+    user: { id: user._id, name: user.name, email: user.email },
+  });
 }
