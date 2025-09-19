@@ -2,39 +2,24 @@ import bcrypt from "bcryptjs";
 import User from "../../../models/User";
 import { connectDB } from "../../../lib/mongodb";
 import nodemailer from "nodemailer";
-import Cors from "cors";
+import { allowCors } from "../../../lib/cors";
 
-// --- CORS setup ---
-const cors = Cors({
-  methods: ["POST", "OPTIONS"],
-  origin: "https://www.rentsetu.in", // replace '*' with your frontend URL in production
-});
-
-function runMiddleware(req, res, fn) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) return reject(result);
-      return resolve(result);
-    });
-  });
-}
-
-export default async function handler(req, res) {
-  await runMiddleware(req, res, cors);
-
-  if (req.method === "OPTIONS") return res.status(200).end();
-
-  if (req.method !== "POST")
+export default allowCors(async function handler(req, res) {
+  if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
 
   const { name, email, password } = req.body || {};
-  if (!name || !email || !password)
+  if (!name || !email || !password) {
     return res.status(400).json({ error: "name, email and password required" });
+  }
 
   await connectDB();
 
   const exists = await User.findOne({ email });
-  if (exists) return res.status(409).json({ error: "User already exists" });
+  if (exists) {
+    return res.status(409).json({ error: "User already exists" });
+  }
 
   const hashed = await bcrypt.hash(password, 10);
   const user = await User.create({
@@ -44,7 +29,7 @@ export default async function handler(req, res) {
     google: false,
   });
 
-  // --- NodeMailer welcome email ---
+  // Send welcome email
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -69,6 +54,6 @@ export default async function handler(req, res) {
 
   return res.status(201).json({
     message: "Registered",
-    user: { id: user._id, name: user.name, email: user.email },
+    user: { id: user._id.toString(), name: user.name, email: user.email },
   });
-}
+});
