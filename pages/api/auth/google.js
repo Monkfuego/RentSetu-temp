@@ -1,32 +1,47 @@
 import { OAuth2Client } from "google-auth-library";
-import User from "../../../models/User";   // ✅ use your Mongoose model
+import User from "../../../models/User"; // Mongoose model
 import { signAccess, signRefresh } from "../../../lib/jwt";
 import cookie from "cookie";
-import { v4 as uuidv4 } from "uuid";
-import dbConnect from "../../../lib/mongodb"; // ✅ helper to connect to MongoDB
+import dbConnect from "../../../lib/mongodb"; // MongoDB helper
+import Cors from "cors";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const COOKIE_NAME = process.env.COOKIE_NAME || "jid";
 
+// --- CORS setup ---
+const cors = Cors({
+  methods: ["POST", "OPTIONS"],
+  origin: "https://www.rentsetu.in/", // replace '*' with your frontend URL in production
+});
+
+function runMiddleware(req, res, fn) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result) => {
+      if (result instanceof Error) return reject(result);
+      return resolve(result);
+    });
+  });
+}
+
 export default async function handler(req, res) {
+  await runMiddleware(req, res, cors);
+  if (req.method === "OPTIONS") return res.status(200).end();
+
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const { idToken } = req.body || {};
-  if (!idToken) {
-    return res.status(400).json({ error: "idToken required" });
-  }
+  if (!idToken) return res.status(400).json({ error: "idToken required" });
 
   try {
-    await dbConnect(); // ✅ ensure MongoDB is connected
+    await dbConnect();
 
     // Verify Google ID token
     const ticket = await client.verifyIdToken({
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
-
     const payload = ticket.getPayload();
     const email = payload.email;
     const name = payload.name || "Google User";
@@ -37,7 +52,8 @@ export default async function handler(req, res) {
       user = new User({
         email,
         name,
-        googleId: payload.sub, // Google unique ID
+        google: true,
+        googleId: payload.sub,
         createdAt: new Date(),
       });
       await user.save();
@@ -54,7 +70,7 @@ export default async function handler(req, res) {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        maxAge: 60 * 60 * 24 * 7,
       })
     );
 
