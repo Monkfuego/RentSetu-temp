@@ -9,7 +9,7 @@ const RESET_SECRET = process.env.JWT_REFRESH_SECRET || "reset-secret";
 // --- CORS setup ---
 const cors = Cors({
   methods: ["POST", "OPTIONS"],
-  origin: "https://www.rentsetu.in/", // replace '*' with your frontend URL in production
+  origin: "https://www.rentsetu.in", // replace '*' with your frontend URL in production
 });
 
 function runMiddleware(req, res, fn) {
