@@ -10,7 +10,7 @@ const COOKIE_NAME = process.env.COOKIE_NAME || "jid";
 // --- CORS setup ---
 const cors = Cors({
   methods: ["POST", "OPTIONS"],
-  origin: "https://www.rentsetu.in/", // replace '*' with your frontend URL in production
+  origin: "https://www.rentsetu.in", // replace '*' with your frontend URL in production
 });
 
 function runMiddleware(req, res, fn) {
